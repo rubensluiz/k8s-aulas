@@ -1,0 +1,145 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: outline
+  name: outline
+  namespace: outline
+spec:
+  ports:
+  - port: 3000
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app: outline
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: outline
+  name: outline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: outline
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: outline
+    spec:
+      initContainers:
+      - image: outlinewiki/outline:0.67.2
+        name: outline-init
+        resources: {}
+        env:
+          - name: NODE_ENV
+            value: production
+          - name: SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: outline-secrets
+                key: outline-secret-key
+          - name: UTILS_SECRET
+            value: oveeT4eeleiKi3iewa6ijohfa3aich5a
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: outline-secrets
+                key: database-password
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: outline-secrets
+                key: database-user
+          - name: POSTGRES_DB
+            valueFrom:
+              secretKeyRef:
+                name: outline-secrets
+                key: database-name
+          - name: DATABASE_URL
+            value: postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres-0:5432/$(POSTGRES_DB)
+          - name: DATABASE_CONNECTION_POOL_MIN
+            value: '10'
+          - name: DATABASE_CONNECTION_POOL_MAX
+            value: '30'
+          - name: URL
+            value: http://localhost:3000
+          - name: PORT
+            value: '3000'
+        args:
+        - db:migrate
+      containers:
+      - image: outlinewiki/outline:0.67.2
+        name: outline
+        resources: {}
+        env:
+          - name: NODE_ENV
+            value: production
+          - name: SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: outline-secrets
+                key: outline-secret-key
+          - name: UTILS_SECRET
+            value: oveeT4eeleiKi3iewa6ijohfa3aich5a
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: outline-secrets
+                key: database-password
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: outline-secrets
+                key: database-user
+          - name: POSTGRES_DB
+            valueFrom:
+              secretKeyRef:
+                name: outline-secrets
+                key: database-name
+          - name: DATABASE_URL
+            value: postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres-0:5432/$(POSTGRES_DB)
+          - name: DATABASE_URL_TEST
+            value: postgres://user:pass@localhost:5432/outline-test
+          - name: DATABASE_CONNECTION_POOL_MIN
+            value: '10'
+          - name: DATABASE_CONNECTION_POOL_MAX
+            value: '30'
+          - name: REDIS_URL
+            value: redis://redis:6379
+          - name: URL
+            value: http://localhost:3000
+          - name: PORT
+            value: '3000'
+          - name: COLLABORATION_URL
+            value: ''
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: outline-secrets
+                key: minio-access-key
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: outline-secrets
+                key: minio-secret-key
+          - name: AWS_REGION
+            value: xx-xxxx-x
+          - name: AWS_S3_UPLOAD_BUCKET_URL
+            value: http://minio:9000
+          - name: AWS_S3_UPLOAD_BUCKET_NAME
+            value: bucket_name_here
+          - name: AWS_S3_UPLOAD_MAX_SIZE
+            value: "26214400"
+          - name: AWS_S3_FORCE_PATH_STYLE
+            value: "true"
+          - name: AWS_S3_ACL
+            value: private
+status: {}

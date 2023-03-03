@@ -1,0 +1,77 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: minio
+  name: minio
+  namespace: outline
+spec:
+  ports:
+  - name: minio-api
+    port: 9000
+    protocol: TCP
+    targetPort: 9000
+  - name: minio-dashboard
+    port: 9001
+    protocol: TCP
+    targetPort: 9001
+  selector:
+    app: minio
+status:
+  loadBalancer: {}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  creationTimestamp: null
+  labels:
+    app: minio
+  name: minio
+spec:
+  volumeClaimTemplates:
+  - metadata:
+      name: minio
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+  serviceName: minio
+  replicas: 3
+  podManagementPolicy: "Parallel"
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: minio
+    spec:
+      containers:
+      - image: minio/minio:RELEASE.2023-02-27T18-10-45Z
+        name: minio
+        resources: {}
+        volumeMounts:
+          - name: minio
+            mountPath: /data
+        env:
+          - name: MINIO_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: outline-secrets
+                key: minio-access-key
+          - name: MINIO_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: outline-secrets
+                key: minio-secret-key
+          - name: MINIO_CONSOLE_ADDRESS
+            value: 0.0.0.0:9001
+        args:
+        - server
+        - http://minio-0.minio:9000/data
+        - http://minio-1.minio:9000/data
+        - http://minio-2.minio:9000/data
